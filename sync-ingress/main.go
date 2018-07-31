@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -89,13 +90,10 @@ func BuildConfig() (*rest.Config, error) {
 	return config, err
 }
 
-func CreateIngress(clientset *kubernetes.Clientset, ns string) error {
+func UpdateIngress(clientset *kubernetes.Clientset, ns string) error {
 	ext_api := clientset.ExtensionsV1beta1()
 	svcLst, err := clientset.CoreV1().Services(ns).List(metav1.ListOptions{})
 	svcItems := svcLst.Items
-	if len(svcItems) == 0 {
-		return nil
-	}
 
 	xs := []Service{}
 	for _, svc := range svcItems {
@@ -115,6 +113,9 @@ func CreateIngress(clientset *kubernetes.Clientset, ns string) error {
 				Namespace: ns,
 			})
 		}
+	}
+	if len(xs) == 0 {
+		return nil
 	}
 	ing := FromServices(ns, xs)
 	log.Printf("Create %d rules in %s", len(xs), ns)
@@ -138,10 +139,17 @@ func main() {
 		log.Fatal("Empty namespace")
 	}
 	namespaces := strings.Split(IngressNamespaces, ",")
-	for _, ns := range namespaces {
-		err = CreateIngress(clientset, ns)
-		if err != nil {
-			log.Println(err)
+	ticker := time.NewTicker(time.Second * 60)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			for _, ns := range namespaces {
+				err = UpdateIngress(clientset, ns)
+				if err != nil {
+					log.Println(err)
+				}
+			}
 		}
 	}
 }
