@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/knight42/k8s-demos/pkg"
+
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -27,21 +26,10 @@ type Service struct {
 }
 
 var (
-	KubeConfig        string = ""
 	IngressNamespaces string = ""
 )
 
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
 func init() {
-	if home := homeDir(); home != "" {
-		KubeConfig = filepath.Join(home, ".kube", "config")
-	}
 	IngressNamespaces = os.Getenv("NAMESPACES_TO_USE_INTERNAL_INGRESS")
 }
 
@@ -74,20 +62,6 @@ func FromServices(ns string, svcs []Service) *extv1.Ingress {
 	ing.ObjectMeta = objMeta
 	ing.Spec.Rules = []extv1.IngressRule{rule}
 	return ing
-}
-
-func BuildConfig() (*rest.Config, error) {
-	var (
-		config *rest.Config
-		err    error
-	)
-	// use the current context in kubeconfig
-	if os.Getenv("IN_CLUSTER") == "true" {
-		config, err = rest.InClusterConfig()
-	} else {
-		config, err = clientcmd.BuildConfigFromFlags("", KubeConfig)
-	}
-	return config, err
 }
 
 func UpdateIngress(clientset *kubernetes.Clientset, ns string) error {
@@ -127,28 +101,28 @@ func UpdateIngress(clientset *kubernetes.Clientset, ns string) error {
 }
 
 func main() {
-	cfg, err := BuildConfig()
+	cfg, err := pkg.BuildConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if IngressNamespaces == "" {
 		log.Fatal("Empty namespace")
 	}
+
 	namespaces := strings.Split(IngressNamespaces, ",")
 	ticker := time.NewTicker(time.Second * 60)
 	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			for _, ns := range namespaces {
-				err = UpdateIngress(clientset, ns)
-				if err != nil {
-					log.Println(err)
-				}
+	for range ticker.C {
+		for _, ns := range namespaces {
+			err = UpdateIngress(clientset, ns)
+			if err != nil {
+				log.Println(err)
 			}
 		}
 	}
