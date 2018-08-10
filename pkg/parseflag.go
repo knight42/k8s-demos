@@ -17,15 +17,29 @@ func homeDir() string {
 }
 
 func BuildConfig() (*rest.Config, error) {
-	var kubeconfig *string
+	if os.Getenv("IN_CLUSTER") == "true" {
+		return rest.InClusterConfig()
+	}
+
+	var (
+		kubeconfig     *string
+		currentContext *string
+	)
 	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
+	currentContext = flag.String("context", "", "kube context")
 	flag.Parse()
 
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	return config, err
+	if *currentContext == "" {
+		return clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	} else {
+		return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: *kubeconfig},
+			&clientcmd.ConfigOverrides{
+				CurrentContext: *currentContext,
+			}).ClientConfig()
+	}
 }
