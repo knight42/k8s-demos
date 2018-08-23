@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/knight42/k8s-demos/pkg"
@@ -27,9 +28,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Deployment(Namespace)\tDesired/Ready/Updated/Unavailable")
+	fmt.Println("========================================================")
 	for _, item := range ds.Items {
 		if item.Status.UnavailableReplicas != 0 {
-			log.Printf("%s(%s)", item.Name, item.Namespace)
+			fmt.Printf("%s(%s)\t%d/%d/%d/%d\n", item.Name, item.Namespace, *item.Spec.Replicas, item.Status.ReadyReplicas, item.Status.UpdatedReplicas, item.Status.UnavailableReplicas)
 		}
 	}
 }
