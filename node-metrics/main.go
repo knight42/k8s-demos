@@ -9,6 +9,9 @@ import (
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+// type doc: https://godoc.org/github.com/kubernetes/metrics/pkg/apis/metrics
+// client api doc: https://godoc.org/github.com/kubernetes/metrics/pkg/client/clientset/versioned
+
 func main() {
 	cfg, err := pkg.BuildConfig()
 	if err != nil {
