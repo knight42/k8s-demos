@@ -16,7 +16,7 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func BuildConfig() (*rest.Config, error) {
+func BuildConfigFromFlag() (*rest.Config, error) {
 	if os.Getenv("IN_CLUSTER") == "true" {
 		return rest.InClusterConfig()
 	}
