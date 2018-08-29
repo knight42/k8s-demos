@@ -13,6 +13,7 @@ import (
 )
 
 type ContainerStatus struct {
+	Name    string `yaml:"name"`
 	State   string `yaml:"state"`
 	Image   string `yaml:"image"`
 	Message string `yaml:"message"`
@@ -21,6 +22,7 @@ type ContainerStatus struct {
 
 type PodStatus struct {
 	Phase            string            `yaml:"phase"`
+	Name             string            `yaml:"name"`
 	ContainersStatus []ContainerStatus `yaml:"containers_status"`
 }
 
@@ -85,18 +87,19 @@ func main() {
 		var podsStatus []PodStatus
 
 		for _, pod := range pods.Items {
-			healthy := true
+			podHealthy := true
 
 			var ctsStatus []ContainerStatus
 			for _, ctsta := range pod.Status.ContainerStatuses {
 				if ctsta.Ready {
 					continue
 				}
-				healthy = false
+				podHealthy = false
 				switch {
 				case ctsta.State.Terminated != nil:
 					ctsStatus = append(ctsStatus, ContainerStatus{
 						State:   "terminated",
+						Name:    ctsta.Name,
 						Image:   ctsta.Image,
 						Message: ctsta.State.Terminated.Message,
 						Reason:  ctsta.State.Terminated.Reason,
@@ -104,6 +107,7 @@ func main() {
 				case ctsta.State.Waiting != nil:
 					ctsStatus = append(ctsStatus, ContainerStatus{
 						State:   "waiting",
+						Name:    ctsta.Name,
 						Image:   ctsta.Image,
 						Message: ctsta.State.Waiting.Message,
 						Reason:  ctsta.State.Waiting.Reason,
@@ -111,10 +115,11 @@ func main() {
 				}
 			}
 
-			if healthy {
+			if podHealthy {
 				continue
 			}
 			podsStatus = append(podsStatus, PodStatus{
+				Name:             pod.ObjectMeta.Name,
 				Phase:            string(pod.Status.Phase),
 				ContainersStatus: ctsStatus,
 			})
