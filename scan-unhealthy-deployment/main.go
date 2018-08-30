@@ -95,24 +95,23 @@ func main() {
 					continue
 				}
 				podHealthy = false
+				s := ContainerStatus{
+					Name:  ctsta.Name,
+					Image: ctsta.Image,
+				}
 				switch {
 				case ctsta.State.Terminated != nil:
-					ctsStatus = append(ctsStatus, ContainerStatus{
-						State:   "terminated",
-						Name:    ctsta.Name,
-						Image:   ctsta.Image,
-						Message: ctsta.State.Terminated.Message,
-						Reason:  ctsta.State.Terminated.Reason,
-					})
+					s.Message = ctsta.State.Terminated.Message
+					s.Reason = ctsta.State.Terminated.Reason
+					s.State = "terminated"
 				case ctsta.State.Waiting != nil:
-					ctsStatus = append(ctsStatus, ContainerStatus{
-						State:   "waiting",
-						Name:    ctsta.Name,
-						Image:   ctsta.Image,
-						Message: ctsta.State.Waiting.Message,
-						Reason:  ctsta.State.Waiting.Reason,
-					})
+					s.Message = ctsta.State.Waiting.Message
+					s.Reason = ctsta.State.Waiting.Reason
+					s.State = "waiting"
+				default:
+					s.State = ctsta.State.Running.String()
 				}
+				ctsStatus = append(ctsStatus, s)
 			}
 
 			if podHealthy {
@@ -133,10 +132,7 @@ func main() {
 		return
 	}
 
-	data, err := yaml.Marshal(unhealthyDepls)
-	if err != nil {
-		log.Fatal(err)
-	}
+	data, _ := yaml.Marshal(unhealthyDepls)
 
 	fmt.Println(string(data))
 }
