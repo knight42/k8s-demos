@@ -23,6 +23,7 @@ type ContainerStatus struct {
 type PodStatus struct {
 	Phase            string            `yaml:"phase"`
 	Name             string            `yaml:"name"`
+	NodeName         string            `yaml:"node_name"`
 	ContainersStatus []ContainerStatus `yaml:"containers_status"`
 }
 
@@ -119,6 +120,7 @@ func main() {
 			}
 			podsStatus = append(podsStatus, PodStatus{
 				Name:             pod.ObjectMeta.Name,
+				NodeName:         pod.Spec.NodeName,
 				Phase:            string(pod.Status.Phase),
 				ContainersStatus: ctsStatus,
 			})
