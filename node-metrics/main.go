@@ -1,13 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/knight42/k8s-utils/pkg"
 
-	yaml "gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
@@ -27,15 +29,16 @@ type NodeMetric struct {
 }
 
 type ContainerResource struct {
-	CpuUsage   string `yaml:"cpu_usage"`
-	MemUsage   string `yaml:"mem_usage"`
-	CpuRequest string `yaml:"cpu_request"`
-	MemRequest string `yaml:"mem_request"`
-	CpuLimit   string `yaml:"cpu_limit"`
-	MemLimit   string `yaml:"mem_limit"`
+	CpuUsage   *resource.Quantity `yaml:"cpu_usage"`
+	MemUsage   *resource.Quantity `yaml:"mem_usage"`
+	CpuRequest *resource.Quantity `yaml:"cpu_request"`
+	MemRequest *resource.Quantity `yaml:"mem_request"`
+	CpuLimit   *resource.Quantity `yaml:"cpu_limit"`
+	MemLimit   *resource.Quantity `yaml:"mem_limit"`
 }
 
 type PodMetric struct {
+	Name       string                        `yaml:"name,omitempty"`
 	Namespace  string                        `yaml:"namespace"`
 	Containers map[string]*ContainerResource `yaml:"containers"`
 }
@@ -73,11 +76,11 @@ func printOverView(clientset *kubernetes.Clientset, metricsCliset *metricsclient
 		return
 	}
 
-	data, _ := yaml.Marshal(nodeMetrics)
+	data, _ := json.MarshalIndent(nodeMetrics, "", "  ")
 	fmt.Println(string(data))
 }
 
-func printNodeDetail(clientset *kubernetes.Clientset, metricsCliset *metricsclientset.Clientset, nodeName string) {
+func printNodeDetail(clientset *kubernetes.Clientset, metricsCliset *metricsclientset.Clientset, nodeName string, sortBy string) {
 	podsCli := clientset.CoreV1().Pods(metav1.NamespaceAll)
 	fieldSet := fields.Set{
 		"spec.nodeName": nodeName,
@@ -97,10 +100,10 @@ func printNodeDetail(clientset *kubernetes.Clientset, metricsCliset *metricsclie
 		pm.Containers = make(map[string]*ContainerResource, len(p.Spec.Containers))
 		for _, ct := range p.Spec.Containers {
 			var ctRes ContainerResource
-			ctRes.CpuLimit = ct.Resources.Limits.Cpu().String()
-			ctRes.MemLimit = ct.Resources.Limits.Memory().String()
-			ctRes.CpuRequest = ct.Resources.Requests.Cpu().String()
-			ctRes.MemRequest = ct.Resources.Requests.Memory().String()
+			ctRes.CpuLimit = ct.Resources.Limits.Cpu()
+			ctRes.MemLimit = ct.Resources.Limits.Memory()
+			ctRes.CpuRequest = ct.Resources.Requests.Cpu()
+			ctRes.MemRequest = ct.Resources.Requests.Memory()
 			pm.Containers[ct.Name] = &ctRes
 		}
 
@@ -111,8 +114,8 @@ func printNodeDetail(clientset *kubernetes.Clientset, metricsCliset *metricsclie
 			continue
 		}
 		for _, ct := range m.Containers {
-			pm.Containers[ct.Name].CpuUsage = ct.Usage.Cpu().String()
-			pm.Containers[ct.Name].MemUsage = ct.Usage.Memory().String()
+			pm.Containers[ct.Name].CpuUsage = ct.Usage.Cpu()
+			pm.Containers[ct.Name].MemUsage = ct.Usage.Memory()
 		}
 		result[p.Name] = pm
 	}
@@ -121,12 +124,49 @@ func printNodeDetail(clientset *kubernetes.Clientset, metricsCliset *metricsclie
 		return
 	}
 
-	data, _ := yaml.Marshal(result)
+	toSort := make([]PodMetric, len(result))
+	i := 0
+	for k, v := range result {
+		v.Name = k
+		toSort[i] = v
+		i++
+	}
+	if sortBy == "memory" {
+		sort.Slice(toSort, func(i, j int) bool {
+			a := &toSort[i]
+			b := &toSort[j]
+			var aval int64 = 0
+			var bval int64 = 0
+			for _, v := range a.Containers {
+				aval += v.MemUsage.Value()
+			}
+			for _, v := range b.Containers {
+				bval += v.MemUsage.Value()
+			}
+			return aval < bval
+		})
+	} else if sortBy == "cpu" {
+		sort.Slice(toSort, func(i, j int) bool {
+			a := &toSort[i]
+			b := &toSort[j]
+			var aval int64 = 0
+			var bval int64 = 0
+			for _, v := range a.Containers {
+				aval += v.CpuUsage.MilliValue()
+			}
+			for _, v := range b.Containers {
+				bval += v.CpuUsage.MilliValue()
+			}
+			return aval < bval
+		})
+	}
+	data, _ := json.MarshalIndent(toSort, "", "  ")
 	fmt.Println(string(data))
 }
 
 func main() {
 	nodeName := flag.String("node", "", "node name")
+	sortBy := flag.String("sort", "memory", "sort by (cpu|memory). Default: memory")
 
 	cfg, err := pkg.BuildConfigFromFlag()
 	if err != nil {
@@ -145,6 +185,6 @@ func main() {
 	if *nodeName == "" {
 		printOverView(clientset, metricsCliset)
 	} else {
-		printNodeDetail(clientset, metricsCliset, *nodeName)
+		printNodeDetail(clientset, metricsCliset, *nodeName, *sortBy)
 	}
 }
