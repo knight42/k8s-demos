@@ -7,6 +7,7 @@ import (
 
 	"github.com/knight42/k8s-utils/pkg"
 	yaml "gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -35,6 +36,18 @@ type UnhealthyDeployment struct {
 	UpdatedReplicas     int32       `yaml:"updated_replicas"`
 	UnavailableReplicas int32       `yaml:"unavailable_replicas"`
 	PodsStatus          []PodStatus `yaml:"pods_status"`
+}
+
+func extractState(states ...corev1.ContainerState) (msg, reason, stateStr string) {
+	for _, s := range states {
+		switch {
+		case s.Terminated != nil:
+			return s.Terminated.Message, s.Terminated.Reason, "terminated"
+		case s.Waiting != nil:
+			return s.Waiting.Message, s.Waiting.Reason, "waiting"
+		}
+	}
+	return "", "", ""
 }
 
 func main() {
@@ -100,18 +113,14 @@ func main() {
 					Name:  ctsta.Name,
 					Image: ctsta.Image,
 				}
-				switch {
-				case ctsta.State.Terminated != nil:
-					s.Message = ctsta.State.Terminated.Message
-					s.Reason = ctsta.State.Terminated.Reason
-					s.State = "terminated"
-				case ctsta.State.Waiting != nil:
-					s.Message = ctsta.State.Waiting.Message
-					s.Reason = ctsta.State.Waiting.Reason
-					s.State = "waiting"
-				default:
-					s.State = ctsta.State.Running.String()
+				msg, reason, stateStr := extractState(ctsta.State, ctsta.LastTerminationState)
+				if msg == "" {
+					// Container starting
+					continue
 				}
+				s.Message = msg
+				s.Reason = reason
+				s.State = stateStr
 				ctsStatus = append(ctsStatus, s)
 			}
 
