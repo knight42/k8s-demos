@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/knight42/k8s-utils/pkg"
+	"github.com/knight42/shiki"
 	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 )
 
 type ContainerStatus struct {
@@ -51,17 +50,9 @@ func extractState(states ...corev1.ContainerState) (msg, reason, stateStr string
 }
 
 func main() {
-	ns := flag.String("namespace", "", "the namespace scope")
+	ns := flag.String("ns", metav1.NamespaceAll, "the namespace scope")
 
-	cfg, err := pkg.BuildConfigFromFlag()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	clientset := shiki.NewClientsetOrDie()
 
 	corev1 := clientset.CoreV1()
 
