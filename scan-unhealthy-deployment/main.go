@@ -17,6 +17,7 @@ type containerState struct {
 	StateStr   string       `yaml:"state_str,omitempty"`
 	Reason     string       `yaml:"reason,omitempty"`
 	Message    string       `yaml:"message,omitempty"`
+	Signal     int32        `yaml:"signal,omitempty"`
 	ExitCode   int32        `yaml:"exit_code,omitempty"`
 	StartedAt  *metav1.Time `yaml:"started_at,omitempty"`
 	FinishedAt *metav1.Time `yaml:"finished_at,omitempty"`
@@ -42,6 +43,7 @@ type UnhealthyDeployment struct {
 	DesiredReplicas     int32       `yaml:"desired_replicas"`
 	ReadyReplicas       int32       `yaml:"ready_replicas"`
 	UpdatedReplicas     int32       `yaml:"updated_replicas"`
+	AvailableReplicas   int32       `yaml:"available_replicas"`
 	UnavailableReplicas int32       `yaml:"unavailable_replicas"`
 	PodsStatus          []PodStatus `yaml:"pods_status"`
 }
@@ -52,6 +54,7 @@ func extractState(s corev1.ContainerState) *containerState {
 		return &containerState{
 			Reason:     s.Terminated.Reason,
 			Message:    s.Terminated.Message,
+			Signal:     s.Terminated.Signal,
 			ExitCode:   s.Terminated.ExitCode,
 			StateStr:   "terminated",
 			StartedAt:  &s.Terminated.StartedAt,
@@ -99,6 +102,7 @@ func main() {
 			ReadyReplicas:       item.Status.ReadyReplicas,
 			UpdatedReplicas:     item.Status.UpdatedReplicas,
 			UnavailableReplicas: item.Status.UnavailableReplicas,
+			AvailableReplicas:   item.Status.AvailableReplicas,
 		}
 
 		labelSelector := labels.FormatLabels(item.Spec.Selector.MatchLabels)
