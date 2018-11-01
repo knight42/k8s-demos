@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knight42/k8s-demos/pkg"
+	"github.com/knight42/shiki"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -101,15 +101,7 @@ func UpdateIngress(clientset *kubernetes.Clientset, ns string) error {
 }
 
 func main() {
-	cfg, err := pkg.BuildConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	clientset := shiki.NewClientsetOrDie()
 
 	if IngressNamespaces == "" {
 		log.Fatal("Empty namespace")
@@ -120,8 +112,7 @@ func main() {
 	defer ticker.Stop()
 	for range ticker.C {
 		for _, ns := range namespaces {
-			err = UpdateIngress(clientset, ns)
-			if err != nil {
+			if err := UpdateIngress(clientset, ns); err != nil {
 				log.Println(err)
 			}
 		}

@@ -7,7 +7,7 @@ import (
 	"log"
 	"sort"
 
-	"github.com/knight42/k8s-utils/pkg"
+	"github.com/knight42/shiki"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -168,15 +168,12 @@ func main() {
 	nodeName := flag.String("node", "", "node name")
 	sortBy := flag.String("sort", "memory", "sort by (cpu|memory). Default: memory")
 
-	cfg, err := pkg.BuildConfigFromFlag()
+	cfg, err := shiki.BuildConfigFromFlags()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	clientset := shiki.NewClientsetOrDie()
 	metricsCliset, err := metricsclientset.NewForConfig(cfg)
 	if err != nil {
 		log.Fatal(err)
