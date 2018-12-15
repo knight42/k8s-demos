@@ -1,16 +1,15 @@
-package main
+package diagnose
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/knight42/shiki"
 	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 type containerState struct {
@@ -76,16 +75,31 @@ func extractState(s corev1.ContainerState) *containerState {
 	}
 }
 
-func main() {
-	ns := flag.String("ns", metav1.NamespaceAll, "the namespace scope")
+func getCtStatuses(ctstas []corev1.ContainerStatus) ([]ContainerStatus, bool) {
+	var ctsStatus []ContainerStatus
+	podHealthy := true
+	for _, ctsta := range ctstas {
+		if ctsta.Ready {
+			continue
+		}
+		podHealthy = false
+		s := ContainerStatus{
+			Name:      ctsta.Name,
+			Image:     ctsta.Image,
+			State:     extractState(ctsta.State),
+			LastState: extractState(ctsta.LastTerminationState),
+		}
+		ctsStatus = append(ctsStatus, s)
+	}
+	return ctsStatus, podHealthy
+}
 
-	clientset := shiki.NewClientsetOrDie()
-
-	corev1 := clientset.CoreV1()
+func Run(clientset *kubernetes.Clientset, ns string) {
+	core_v1 := clientset.CoreV1()
 
 	var unhealthyDepls []UnhealthyDeployment
 
-	ds, err := clientset.AppsV1().Deployments(*ns).List(metav1.ListOptions{})
+	ds, err := clientset.AppsV1().Deployments(ns).List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,7 +108,7 @@ func main() {
 		if item.Status.UnavailableReplicas == 0 {
 			continue
 		}
-		ns := item.ObjectMeta.Namespace
+		ns := item.ObjectMeta.Namespace // override empty Namespace
 		u := UnhealthyDeployment{
 			Name:                item.ObjectMeta.Name,
 			Namespace:           ns,
@@ -109,7 +123,7 @@ func main() {
 		lstopts := metav1.ListOptions{
 			LabelSelector: labelSelector,
 		}
-		pods, err := corev1.Pods(ns).List(lstopts)
+		pods, err := core_v1.Pods(ns).List(lstopts)
 		if err != nil {
 			log.Printf("error=%s cause='list pods' labels=%s", err, labelSelector)
 			continue
@@ -118,22 +132,10 @@ func main() {
 		var podsStatus []PodStatus
 
 		for _, pod := range pods.Items {
-			podHealthy := true
-
-			var ctsStatus []ContainerStatus
-			for _, ctsta := range pod.Status.ContainerStatuses {
-				if ctsta.Ready {
-					continue
-				}
-				podHealthy = false
-				s := ContainerStatus{
-					Name:      ctsta.Name,
-					Image:     ctsta.Image,
-					State:     extractState(ctsta.State),
-					LastState: extractState(ctsta.LastTerminationState),
-				}
-				ctsStatus = append(ctsStatus, s)
-			}
+			var podCtStatuses []corev1.ContainerStatus
+			copy(podCtStatuses, pod.Status.ContainerStatuses)
+			podCtStatuses = append(podCtStatuses, pod.Status.InitContainerStatuses...)
+			ctsStatus, podHealthy := getCtStatuses(podCtStatuses)
 
 			if podHealthy {
 				continue
