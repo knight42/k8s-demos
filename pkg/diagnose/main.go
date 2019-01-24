@@ -132,8 +132,8 @@ func Run(clientset *kubernetes.Clientset, ns string) {
 		var podsStatus []PodStatus
 
 		for _, pod := range pods.Items {
-			var podCtStatuses []corev1.ContainerStatus
-			copy(podCtStatuses, pod.Status.ContainerStatuses)
+			podCtStatuses := make([]corev1.ContainerStatus, 0, len(pod.Status.ContainerStatuses)+len(pod.Status.InitContainerStatuses))
+			podCtStatuses = append(podCtStatuses, pod.Status.ContainerStatuses...)
 			podCtStatuses = append(podCtStatuses, pod.Status.InitContainerStatuses...)
 			ctsStatus, podHealthy := getCtStatuses(podCtStatuses)
 
