@@ -1,6 +1,20 @@
 # k8s-tools
 
-一些 kubectl 的 plugins:
+一些 kubectl plugins
+
+# Install
+```
+go get -v github.com/knight42/k8s-tools/cmd/...
+```
+
+PS: 使用前需要确保 `$GOPATH/bin` 在 `PATH` 环境变量中:
+```
+export PATH=$GOPATH/bin:$PATH
+```
+
+# Plugins
+* [kubectl-rm](#kubectl-rm)
+* [kubectl-podstatus](#kubectl-podstatus)
 
 ### kubectl-rm
 删除 Resource 前先备份到 `~/.k8s-wastebin/<cluster>/<namespace>/<kind>/<name>_<time>.yaml` 中。
