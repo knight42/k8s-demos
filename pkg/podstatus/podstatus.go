@@ -30,7 +30,7 @@ func NewCmd() *cobra.Command {
 	o := NewPodStatusOptions()
 
 	cmd := &cobra.Command{
-		Use: "kubectl podstatus deployment_name [flags]",
+		Use: "kubectl podstatus [deployment|statefulset|daemonset]",
 		Run: func(cmd *cobra.Command, args []string) {
 			pkg.CheckError(o.Complete(cmd, args))
 			pkg.CheckError(o.Validate())
@@ -108,7 +108,7 @@ func (o *PodStatusOptions) Run() error {
 				status = ctSta.State.Waiting.Reason
 			}
 		}
-		fmt.Printf("name=%s status=%s restart=%d hostIP=%s nodeNode=%s\n", item.Name, status, restart, item.Status.HostIP, item.Spec.NodeName)
+		fmt.Printf("name=%s status=%s restart=%d hostIP=%s nodeName=%s\n", item.Name, status, restart, item.Status.HostIP, item.Spec.NodeName)
 	}
 	return nil
 }
