@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	_ = rm.NewCmdRm().Execute()
+	_ = rm.NewCmd().Execute()
 }

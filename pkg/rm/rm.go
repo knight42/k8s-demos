@@ -55,7 +55,7 @@ func NewRmOptions() *RmOptions {
 	}
 }
 
-func NewCmdRm() *cobra.Command {
+func NewCmd() *cobra.Command {
 	o := NewRmOptions()
 
 	cmd := &cobra.Command{
