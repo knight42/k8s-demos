@@ -81,10 +81,13 @@ func (o *PodStatusOptions) Run() error {
 	dsCli := o.clientSet.AppsV1().DaemonSets(o.namespace)
 
 	if obj, err := dplyCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("Deployment: %s/%s\n", o.namespace, o.name)
 		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
 	} else if obj, err := stsCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("StatefulSet: %s/%s\n", o.namespace, o.name)
 		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
 	} else if obj, err := dsCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("DaemonSet: %s/%s\n", o.namespace, o.name)
 		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
 	} else {
 		return fmt.Errorf("not found: %s/%s", o.namespace, o.name)
