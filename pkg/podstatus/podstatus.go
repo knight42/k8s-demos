@@ -2,8 +2,10 @@ package podstatus
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/knight42/k8s-tools/pkg"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -85,8 +87,11 @@ func (o *PodStatusOptions) Run() error {
 	} else if obj, err := dsCli.Get(o.name, getOpt); err == nil {
 		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
 	} else {
-		return fmt.Errorf("not found: %s", o.name)
+		return fmt.Errorf("not found: %s/%s", o.namespace, o.name)
 	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Ready", "Status", "Restarts", "IP", "Node"})
 
 	lstOpt := metav1.ListOptions{
 		LabelSelector: selector,
@@ -96,19 +101,34 @@ func (o *PodStatusOptions) Run() error {
 		return err
 	}
 	for _, item := range result.Items {
-		var restart int32 = 0
+		var (
+			restarts        int32 = 0
+			containersCount int   = len(item.Spec.Containers)
+			readyCount      int
+		)
 		status := string(item.Status.Phase)
 		for _, ctSta := range item.Status.ContainerStatuses {
-			if restart != 0 && ctSta.RestartCount != 0 {
-				restart = ctSta.RestartCount
-			}
-			if ctSta.State.Terminated != nil {
+			if ctSta.Ready {
+				readyCount += 1
+			} else if ctSta.State.Terminated != nil {
 				status = ctSta.State.Terminated.Reason
 			} else if ctSta.State.Waiting != nil {
 				status = ctSta.State.Waiting.Reason
 			}
+
+			if restarts == 0 && ctSta.RestartCount != 0 {
+				restarts = ctSta.RestartCount
+			}
 		}
-		fmt.Printf("name=%s status=%s restart=%d hostIP=%s nodeName=%s\n", item.Name, status, restart, item.Status.HostIP, item.Spec.NodeName)
+		table.Append([]string{
+			item.Name,
+			fmt.Sprintf("%d/%d", readyCount, containersCount),
+			status,
+			fmt.Sprint(restarts),
+			item.Status.HostIP,
+			item.Spec.NodeName,
+		})
 	}
+	table.Render()
 	return nil
 }
