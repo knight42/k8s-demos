@@ -2,7 +2,7 @@
 
 一些 kubectl plugins
 
-# Install
+# Installation
 ```
 go get -v github.com/knight42/k8s-tools/cmd/...
 ```
@@ -40,5 +40,9 @@ nginx_2019-02-14T17:54:40+08:00.yaml
 例子:
 ```
 $ kubectl podstatus perf
-name=perf-fc679db49-fxqck status=Running restart=0 hostIP=172.31.71.228 nodeName=ip-172-31-71-228.cn-north-1.compute.internal
++-----------------------+-------+---------+----------+---------------+----------------------------------------------+
+|         NAME          | READY | STATUS  | RESTARTS |      IP       |                     NODE                     |
++-----------------------+-------+---------+----------+---------------+----------------------------------------------+
+| perf-5fb9999756-d2pjv | 1/1   | Running |        0 | 172.31.67.191 | ip-172-31-67-191.cn-north-1.compute.internal |
++-----------------------+-------+---------+----------+---------------+----------------------------------------------+
 ```
