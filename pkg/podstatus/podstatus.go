@@ -13,6 +13,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	OwnersAnnotationKey                 = "jike.app/owners"
+	LastUserAnnotationKey               = "jike.app/last-user"
+	LastOperationAnnotationKey          = "jike.app/last-operation"
+	LastOperationTimestampAnnotationKey = "jike.app/last-operation-ts"
+)
+
+var (
+	errNoPods = fmt.Errorf("no pods")
+)
+
 type PodStatusOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 
@@ -70,32 +81,8 @@ func (o *PodStatusOptions) Validate() error {
 	return nil
 }
 
-func (o *PodStatusOptions) Run() error {
-	var selector string
-
-	getOpt := metav1.GetOptions{}
-
+func (o *PodStatusOptions) printPods(selector string) error {
 	podCli := o.clientSet.CoreV1().Pods(o.namespace)
-	dplyCli := o.clientSet.AppsV1().Deployments(o.namespace)
-	stsCli := o.clientSet.AppsV1().StatefulSets(o.namespace)
-	dsCli := o.clientSet.AppsV1().DaemonSets(o.namespace)
-
-	if obj, err := dplyCli.Get(o.name, getOpt); err == nil {
-		fmt.Printf("Deployment: %s/%s\n", o.namespace, o.name)
-		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
-	} else if obj, err := stsCli.Get(o.name, getOpt); err == nil {
-		fmt.Printf("StatefulSet: %s/%s\n", o.namespace, o.name)
-		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
-	} else if obj, err := dsCli.Get(o.name, getOpt); err == nil {
-		fmt.Printf("DaemonSet: %s/%s\n", o.namespace, o.name)
-		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
-	} else {
-		return fmt.Errorf("not found: %s/%s", o.namespace, o.name)
-	}
-
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "Ready", "Status", "Restarts", "IP", "Node"})
-
 	lstOpt := metav1.ListOptions{
 		LabelSelector: selector,
 	}
@@ -103,6 +90,13 @@ func (o *PodStatusOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	if len(result.Items) == 0 {
+		return errNoPods
+	}
+
+	fmt.Printf("Selector: %s\n", selector)
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Ready", "Status", "Restarts", "IP", "Node"})
 	for _, item := range result.Items {
 		var (
 			restarts        int32 = 0
@@ -113,9 +107,9 @@ func (o *PodStatusOptions) Run() error {
 		for _, ctSta := range item.Status.ContainerStatuses {
 			if ctSta.Ready {
 				readyCount += 1
-			} else if ctSta.State.Terminated != nil {
+			} else if ctSta.State.Terminated != nil && len(ctSta.State.Terminated.Reason) != 0 {
 				status = ctSta.State.Terminated.Reason
-			} else if ctSta.State.Waiting != nil {
+			} else if ctSta.State.Waiting != nil && len(ctSta.State.Waiting.Reason) != 0 {
 				status = ctSta.State.Waiting.Reason
 			}
 
@@ -134,4 +128,42 @@ func (o *PodStatusOptions) Run() error {
 	}
 	table.Render()
 	return nil
+}
+
+func (o *PodStatusOptions) Run() error {
+	var selector string
+
+	getOpt := metav1.GetOptions{}
+
+	dplyCli := o.clientSet.AppsV1().Deployments(o.namespace)
+	stsCli := o.clientSet.AppsV1().StatefulSets(o.namespace)
+	dsCli := o.clientSet.AppsV1().DaemonSets(o.namespace)
+
+	if obj, err := dplyCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("Deployment: %s/%s\n", o.namespace, o.name)
+		antns := obj.Annotations
+		fmt.Printf("Owners: %s\n", antns[OwnersAnnotationKey])
+		fmt.Printf("Lase User: %s\n", antns[LastUserAnnotationKey])
+		fmt.Printf("Lase Operation: %s\n", antns[LastOperationAnnotationKey])
+		fmt.Printf("Lase Operation Time: %s\n", antns[LastOperationTimestampAnnotationKey])
+		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
+	} else if obj, err := stsCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("StatefulSet: %s/%s\n", o.namespace, o.name)
+		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
+	} else if obj, err := dsCli.Get(o.name, getOpt); err == nil {
+		fmt.Printf("DaemonSet: %s/%s\n", o.namespace, o.name)
+		selector = labels.FormatLabels(obj.Spec.Selector.MatchLabels)
+	} else {
+		for _, key := range []string{"run", "app", "component"} {
+			err := o.printPods(fmt.Sprintf("%s=%s", key, o.name))
+			if err == nil {
+				return nil
+			} else if err != errNoPods {
+				fmt.Println(err)
+			}
+		}
+		return fmt.Errorf("not found: %s/%s", o.namespace, o.name)
+	}
+
+	return o.printPods(selector)
 }
