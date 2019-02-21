@@ -39,10 +39,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/olekukonko/tablewriter"
-
-[[constraint]]
-  branch = "master"
   name = "k8s.io/cli-runtime"
 
 [[constraint]]
