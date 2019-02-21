@@ -3,9 +3,10 @@ package podstatus
 import (
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/knight42/k8s-tools/pkg"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -94,9 +95,9 @@ func (o *PodStatusOptions) printPods(selector string) error {
 		return errNoPods
 	}
 
-	fmt.Printf("Selector: %s\n", selector)
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "Ready", "Status", "Restarts", "IP", "Node"})
+	fmt.Printf("Selector: %s\n\n", selector)
+	table := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(table, strings.Join([]string{"NAME", "READY", "STATUS", "RESTARTS", "PODIP", "HOSTIP", "NODE"}, "\t"))
 	for _, item := range result.Items {
 		var (
 			restarts        int32 = 0
@@ -117,17 +118,17 @@ func (o *PodStatusOptions) printPods(selector string) error {
 				restarts = ctSta.RestartCount
 			}
 		}
-		table.Append([]string{
+		fmt.Fprintln(table, strings.Join([]string{
 			item.Name,
 			fmt.Sprintf("%d/%d", readyCount, containersCount),
 			status,
 			fmt.Sprint(restarts),
+			item.Status.PodIP,
 			item.Status.HostIP,
 			item.Spec.NodeName,
-		})
+		}, "\t"))
 	}
-	table.Render()
-	return nil
+	return table.Flush()
 }
 
 func (o *PodStatusOptions) Run() error {
