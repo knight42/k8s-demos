@@ -35,15 +35,33 @@ nginx_2019-02-14T17:54:40+08:00.yaml
 ```
 
 ### kubectl-podstatus
-根据名字查找相应的 Deployment 或 Statefulset 或 DaemonSet, 并列出其管理的 Pod 的状态
+查找相应的 Deployment 或 Statefulset 或 DaemonSet, 并列出其管理的 Pod 的状态。
 
 例子:
 ```
+# 自动查找
 $ kubectl podstatus perf
 Deployment: default/perf
-+-----------------------+-------+---------+----------+---------------+----------------------------------------------+
-|         NAME          | READY | STATUS  | RESTARTS |      IP       |                     NODE                     |
-+-----------------------+-------+---------+----------+---------------+----------------------------------------------+
-| perf-5fb9999756-d2pjv | 1/1   | Running |        0 | 172.31.67.191 | ip-172-31-67-191.cn-north-1.compute.internal |
-+-----------------------+-------+---------+----------+---------------+----------------------------------------------+
+Selector: -lapp=perf
+
+NAME                    READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
+perf-5fb9999756-d9fhc   1/1     Running   0          100.96.4.144   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   1h
+
+
+# 指定 Kind
+$ kubectl podstatus -n infra deploy/echoserver
+Deployment: infra/echoserver
+Selector: -lrun=echoserver
+
+NAME                          READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
+echoserver-7dd9469844-tbhgt   1/1     Running   0          100.96.4.139   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   7h
+
+
+# 通过 label 选择 Pods
+$ kubectl podstatus -lcronjob=sleep
+Selector: -lcronjob=sleep
+
+NAME                     READY   STATUS      RESTARTS   PODIP         HOSTIP          NODE                                           AGE
+sleep-1551877200-57895   0/1     Completed   0          100.96.3.57   172.31.71.175   ip-172-31-71-175.cn-north-1.compute.internal   55m
+sleep-1551879000-zwl6l   0/1     Completed   0          100.96.3.87   172.31.71.175   ip-172-31-71-175.cn-north-1.compute.internal   25m
 ```
