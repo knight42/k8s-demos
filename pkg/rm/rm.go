@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/knight42/k8s-tools/pkg"
 	"github.com/knight42/k8s-tools/pkg/scheme"
+	"github.com/knight42/k8s-tools/pkg/utils"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
@@ -42,9 +42,9 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "kubectl rm TYPE [NAME | -l label] [flags]",
 		Run: func(cmd *cobra.Command, args []string) {
-			pkg.CheckError(o.Complete(cmd, args))
-			pkg.CheckError(o.Validate())
-			pkg.CheckError(o.Run())
+			utils.CheckError(o.Complete(cmd, args))
+			utils.CheckError(o.Validate())
+			utils.CheckError(o.Run())
 		},
 	}
 	cmd.Flags().StringVarP(&o.selector, "selector", "l", o.selector, "Selector (label query) to filter on, not including uninitialized ones, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2).")

@@ -4,17 +4,15 @@ package podstatus
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
-	"text/tabwriter"
-
-	"github.com/knight42/k8s-tools/pkg"
 	"github.com/knight42/k8s-tools/pkg/scheme"
+	"github.com/knight42/k8s-tools/pkg/tabwriter"
+	"github.com/knight42/k8s-tools/pkg/utils"
 
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
@@ -74,11 +72,11 @@ func NewCmd() *cobra.Command {
 	o := NewPodStatusOptions()
 
 	cmd := &cobra.Command{
-		Use: "kubectl podstatus [deployment|statefulset|daemonset]",
+		Use: "kubectl podstatus [NAME | -l label] [flags]",
 		Run: func(cmd *cobra.Command, args []string) {
-			pkg.CheckError(o.Complete(cmd, args))
-			pkg.CheckError(o.Validate())
-			pkg.CheckError(o.Run())
+			utils.CheckError(o.Complete(cmd, args))
+			utils.CheckError(o.Validate())
+			utils.CheckError(o.Run())
 		},
 	}
 	cmd.Flags().BoolVarP(&o.watch, "watch", "w", false, "After listing/getting the requested object, watch for changes.")
@@ -116,8 +114,8 @@ func (o *PodStatusOptions) Complete(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	o.writer = NewTabWriter(os.Stdout)
-	fmt.Fprintln(o.writer, strings.Join([]string{"NAME", "READY", "STATUS", "RESTARTS", "PODIP", "HOSTIP", "NODE", "AGE"}, "\t"))
+	o.writer = tabwriter.New(os.Stdout)
+	o.writer.SetHeader([]string{"name", "ready", "status", "restarts", "podip", "hostip", "node", "age"})
 
 	return nil
 }
@@ -133,7 +131,7 @@ func (o *PodStatusOptions) Validate() error {
 }
 
 // See also https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L579
-func (o *PodStatusOptions) PrintObj(obj runtime.Object, w io.Writer) error {
+func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
 	pod := obj.(*corev1.Pod)
 	var (
 		readyCount int
@@ -226,16 +224,29 @@ func (o *PodStatusOptions) PrintObj(obj runtime.Object, w io.Writer) error {
 		age = duration.ShortHumanDuration(time.Since(pod.Status.StartTime.Time))
 	}
 
-	fmt.Fprintln(w, strings.Join([]string{
-		pod.Name,
-		fmt.Sprintf("%d/%d", readyCount, totalCount),
-		reason,
-		fmt.Sprint(restarts),
-		podIP,
-		hostIP,
-		nodeName,
-		age,
-	}, "\t"))
+	if needFlush {
+		_ = o.writer.AppendAndFlush(
+			pod.Name,
+			fmt.Sprintf("%d/%d", readyCount, totalCount),
+			reason,
+			restarts,
+			podIP,
+			hostIP,
+			nodeName,
+			age,
+		)
+	} else {
+		o.writer.Append(
+			pod.Name,
+			fmt.Sprintf("%d/%d", readyCount, totalCount),
+			reason,
+			restarts,
+			podIP,
+			hostIP,
+			nodeName,
+			age,
+		)
+	}
 	return nil
 }
 
@@ -334,9 +345,9 @@ func (o *PodStatusOptions) Run() error {
 			return err
 		}
 
-		return o.PrintObj(info.Object, o.writer)
+		return o.PrintObj(info.Object, false)
 	})
-	_ = o.writer.Flush()
+	_ = o.writer.Render()
 
 	return err
 }
@@ -366,9 +377,9 @@ func (o *PodStatusOptions) watchPods() error {
 	if !o.watchOnly {
 		objsToPrint, _ := meta.ExtractList(obj)
 		for _, objToPrint := range objsToPrint {
-			o.PrintObj(objToPrint, o.writer)
+			o.PrintObj(objToPrint, false)
 		}
-		_ = o.writer.Flush()
+		_ = o.writer.Render()
 	}
 
 	intf, err := r.Watch(rv)
@@ -386,8 +397,7 @@ func (o *PodStatusOptions) watchPods() error {
 	for loop {
 		select {
 		case ev := <-evChan:
-			o.PrintObj(ev.Object, o.writer)
-			_ = o.writer.Flush()
+			o.PrintObj(ev.Object, true)
 		case <-sigChan:
 			signal.Stop(sigChan)
 			close(sigChan)
