@@ -6,6 +6,7 @@
 
 # Unignore all dirs
 !*/
+!Makefile
 
 ### Above combination will ignore all files without extension ###
 
@@ -27,5 +28,4 @@
 *.py[co]
 *~
 *.bac
-__pycache__/
-node_modules/
+vendor/
