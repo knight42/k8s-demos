@@ -282,10 +282,11 @@ func (o *PodStatusOptions) Run() error {
 		mapping := info.ResourceMapping()
 		switch mapping.GroupVersionKind.Kind {
 		case KindDeployment:
-			v := obj.(*extensionsv1beta1.Deployment)
-			selector = labels.FormatLabels(v.Spec.Selector.MatchLabels)
+			var antns map[string]string
+			deploy := obj.(*extensionsv1beta1.Deployment)
+			selector = labels.FormatLabels(deploy.Spec.Selector.MatchLabels)
+			antns = deploy.Annotations
 			fmt.Printf("Deployment: %s/%s\n", info.Namespace, info.Name)
-			antns := v.Annotations
 			if val, ok := antns[OwnersAnnotationKey]; ok {
 				fmt.Printf("Owners: %s\n", val)
 			}
@@ -303,7 +304,7 @@ func (o *PodStatusOptions) Run() error {
 			selector = labels.FormatLabels(v.Spec.Selector.MatchLabels)
 			fmt.Printf("StatefulSet: %s/%s\n", info.Namespace, info.Name)
 		case KindDaemonSet:
-			v := obj.(*appsv1.DaemonSet)
+			v := obj.(*extensionsv1beta1.DaemonSet)
 			selector = labels.FormatLabels(v.Spec.Selector.MatchLabels)
 			fmt.Printf("DaemonSet: %s/%s\n", info.Namespace, info.Name)
 		default:
