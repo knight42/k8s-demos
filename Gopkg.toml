@@ -35,7 +35,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "k8s.io/api"
+  name = "k8s.io/apimachinery"
 
 [[constraint]]
   branch = "master"
