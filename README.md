@@ -17,21 +17,13 @@ export PATH=$GOPATH/bin:$PATH
 * [kubectl-podstatus](#kubectl-podstatus)
 
 ### kubectl-rm
-删除 Resource 前先备份到 `~/.k8s-wastebin/<cluster>/<namespace>/<kind>/<name>_<time>.yaml` 中。
-
-目前仅支持:
-* Deployment
-* ConfigMap
-* StatefulSet
-* DaemonSet
-* Service
-* Cronjob
+删除 Resource 前先备份到 `~/.k8s-wastebin/<cluster>/<namespace>/<time>_<args list>.yaml` 中。
 
 例子:
 ```
 $ kubectl rm deploy nginx
-$ ls ~/.k8s-wastebin/kops-test.k8s.local/default/deployments/
-nginx_2019-02-14T17:54:40+08:00.yaml
+$ ls ~/.k8s-wastebin/kops-test.k8s.local/default
+2019-03-11T15:01:34+08:00_rm_deploy_echo.yaml  2019-03-11T15:03:15+08:00_rm_cm.yaml
 ```
 
 ### kubectl-podstatus
