@@ -19,7 +19,7 @@ limitations under the License.
 package scheme
 
 import (
-	admissionv1alpha1 "k8s.io/api/admission/v1beta1"
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -61,7 +61,7 @@ func init() {
 	utilruntime.Must(scheme.AddToScheme(Scheme))
 
 	utilruntime.Must(Scheme.SetVersionPriority(corev1.SchemeGroupVersion))
-	utilruntime.Must(Scheme.SetVersionPriority(admissionv1alpha1.SchemeGroupVersion))
+	utilruntime.Must(Scheme.SetVersionPriority(admissionv1beta1.SchemeGroupVersion))
 	utilruntime.Must(Scheme.SetVersionPriority(admissionregistrationv1beta1.SchemeGroupVersion))
 	utilruntime.Must(Scheme.SetVersionPriority(appsv1beta1.SchemeGroupVersion, appsv1beta2.SchemeGroupVersion, appsv1.SchemeGroupVersion))
 	utilruntime.Must(Scheme.SetVersionPriority(authenticationv1.SchemeGroupVersion, authenticationv1beta1.SchemeGroupVersion))
