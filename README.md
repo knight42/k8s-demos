@@ -61,6 +61,25 @@ sleep-1551877200-57895   0/1     Completed   0          100.96.3.57   172.31.71.
 sleep-1551879000-zwl6l   0/1     Completed   0          100.96.3.87   172.31.71.175   ip-172-31-71-175.cn-north-1.compute.internal   25m
 ```
 
+```sh
+# 跟踪 Deployment 的 Pod 的变化
+$ kubectl podstatus -w perf
+Deployment: default/perf
+Selector: -lapp=perf
+
+NAME                    READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
+perf-6566dbff9f-847g7   1/1     Running   0          100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-847g7   1/1   Terminating   0     100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-m9525   0/1   Pending   0     <none>   <none>   <none>   <none>
+perf-6566dbff9f-m9525   0/1   Pending   0     <none>   <none>   ip-172-31-67-191.cn-north-1.compute.internal   <none>
+perf-6566dbff9f-m9525   0/1   ContainerCreating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   0s
+perf-6566dbff9f-847g7   0/1   Terminating   0     100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
+perf-6566dbff9f-m9525   1/1   Running   0     100.96.4.151   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   11s
+```
+
 ### kubectl-nodestat
 查看 Node 的 CPU usage/allocatable/requests/limits, Memory usage/allocatable/requests/limits。
 
