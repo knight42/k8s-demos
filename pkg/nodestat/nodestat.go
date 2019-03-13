@@ -13,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	//apiresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -97,6 +96,13 @@ func (o *NodeStatOptions) Complete(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func (o *NodeStatOptions) newBuilder() *resource.Builder {
+	return resource.NewBuilder(o.configFlags).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		Flatten().
+		Latest()
+}
+
 func (o *NodeStatOptions) Validate() error {
 	return nil
 }
@@ -144,14 +150,11 @@ func (o *NodeStatOptions) Run() error {
 		return fmt.Errorf("metrics not available yet")
 	}
 
-	o.args = append([]string{"nodes"}, o.args...)
-	r := resource.NewBuilder(o.configFlags).
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+	args := append([]string{"nodes"}, o.args...)
+	r := o.newBuilder().
 		SingleResourceType().
 		LabelSelector(o.labelSelector).
-		ResourceTypeOrNameArgs(true, o.args...).
-		Flatten().
-		Latest().
+		ResourceTypeOrNameArgs(true, args...).
 		Do()
 
 	if err := r.Err(); err != nil {
@@ -191,7 +194,7 @@ func (o *NodeStatOptions) printResourceUsage(nodeMetrics []metricsapi.NodeMetric
 		}
 
 		percent := 100 * float32(i+1) / float32(maxNodes)
-		fmt.Printf("\rProgress: %3.2f%% (%d/%d)", percent, i+1, maxNodes)
+		fmt.Printf("\r\033[2KProgress: %3.2f%% (%d/%d), Node: %s", percent, i+1, maxNodes, m.Name)
 		totalReqsAndLims, err := o.getTotalRequestsAndLimits(m.Name)
 		if err != nil {
 			return err
@@ -246,12 +249,9 @@ func (o *NodeStatOptions) getTotalRequestsAndLimits(nodeName string) (corev1.Res
 		fields.OneTermNotEqualSelector("status.phase", string(corev1.PodSucceeded)),
 		fields.OneTermNotEqualSelector("status.phase", string(corev1.PodFailed)),
 	)
-	r := resource.NewBuilder(o.configFlags).
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+	r := o.newBuilder().
 		ResourceTypes("pods").
 		FieldSelectorParam(fieldSelector.String()).
-		Flatten().
-		Latest().
 		Do()
 
 	if err := r.Err(); err != nil {
