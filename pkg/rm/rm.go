@@ -85,8 +85,7 @@ func (o *RmOptions) Validate() error {
 func (o *RmOptions) Run() error {
 	allArgs := os.Args[1:]
 
-	identifier := strings.Join(allArgs, "_")
-	identifier = strings.ReplaceAll(identifier, " ", "_")
+	identifier := strings.Replace(strings.Join(allArgs, "_"), " ", "_", -1)
 	fpath := path.Join(o.backupDir, fmt.Sprintf("%s_rm_%s.yaml", time.Now().Format(time.RFC3339), identifier))
 	f, err := os.OpenFile(fpath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
