@@ -1,0 +1,23 @@
+language: go
+os:
+- linux
+- osx
+go:
+- 1.11.x
+- 1.12.x
+- master
+script:
+- go test -v -race ./...
+- go vet ./...
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: jMBZCDTb7Zdwgdmn9IdLpcreaz7onQOf2/Wc/7/EHjOHMHThh3OBZlMMLrQZm+NEZiTO59iO4guEGqBELRjTkpxWDmD6kU/O5Et5pZwb0DQFZQw9JlQuhmb3jvPM4/hwv1OvRzg9LSSBDP/QQSMrgnbYqW3WuEXqh4lPFRnluAM2A2vjbSxvBA6adV0huD4T8nGHfln3larjVoOm78vhTT93zAVjNKVGUyPZaSAgh/xnnYIn6p/cHzAmt97ZVdT6qP1BWiVZ667abequMYv3/YdF6CdrdD5duwNvoCRQTUzYNOP9HSuGrF0ybK+YsZxwkk9yKLmW/hwEkH7KaJfEQol3XbrXmCkJXVR5qwln3akAL+cETO6lkLRPmm9wVMhF6B5SkzsKTbjvFLiAnXRzqr2eE2CLKbPuP0AvLfz68mTpri7+Ccf7QMiJmybXXhcEIItRyCvQ8rMNmUl3O6/5dJqpSialBoprK+fjV/Ru0/xmTVllHI1HYISRHtcwjZPt1m3I1yYc/UXDgH34wCXtzasq1Icn7aHx01RjNvYX/LZD8Xxd/8K6f2GDQZuVqrO4jHQB4+KKNyfRqj1YVFcdQAcSevOALi8WVNcqmngMQAx26qEQm2Pp0mMjzENrX3yukKToTg+qozx/j5ks9XMRdL098oS1dTmPCcjM7NDo3RI=
+  file_glob: true
+  file: bin/*
+  on:
+    repo: knight42/k8s-tools
+    tags: true
+    condition: $TRAVIS_GO_VERSION = master
+    branch: master
