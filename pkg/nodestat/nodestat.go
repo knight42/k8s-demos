@@ -104,6 +104,9 @@ func (o *NodeStatOptions) newBuilder() *resource.Builder {
 }
 
 func (o *NodeStatOptions) Validate() error {
+	if len(o.args) > 1 {
+		return fmt.Errorf("only one node can be specified")
+	}
 	return nil
 }
 
