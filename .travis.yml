@@ -9,6 +9,8 @@ go:
 script:
 - go test -v -race ./...
 - go vet ./...
+before_deploy:
+- make artifacts
 deploy:
   skip_cleanup: true
   provider: releases
