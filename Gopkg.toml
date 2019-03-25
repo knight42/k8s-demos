@@ -53,6 +53,10 @@
   branch = "master"
   name = "k8s.io/metrics"
 
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "1.19.1"
+
 [prune]
   go-tests = true
   unused-packages = true
