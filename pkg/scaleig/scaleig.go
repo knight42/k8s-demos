@@ -209,15 +209,16 @@ func (o *ScaleInstanceGroupOptions) Run() error {
 
 	asg := descASGOutput.AutoScalingGroups[0]
 	if len(asg.Instances) == 0 {
-		return fmt.Errorf("not found: auto scaling group `%s` has no instance", asgName)
+		return fmt.Errorf("not found: auto scaling group `%s` contains no instance", asgName)
 	}
 
 	instanceCount := len(asg.Instances)
 	if o.size == instanceCount {
-		fmt.Println("no changes")
+		fmt.Println("No changes")
 		return nil
 	} else if o.size > instanceCount {
-		fmt.Println("use kops in stead")
+		fmt.Printf("Current: %d, Desired: %d\n", instanceCount, o.size)
+		fmt.Printf("Use `kops edit ig %s` instead\n", asgName)
 		return nil
 	}
 
