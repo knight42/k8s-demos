@@ -16,6 +16,7 @@ export PATH=$GOPATH/bin:$PATH
 * [kubectl-rm](#kubectl-rm)
 * [kubectl-podstatus](#kubectl-podstatus)
 * [kubectl-nodestat](#kubectl-nodestat)
+* [kubectl-scaleig](#kubectl-scaleig)
 
 ### kubectl-rm
 删除 Resource 前先备份到 `~/.k8s-wastebin/<cluster>/<namespace>/<time>_<args list>.yaml` 中。
@@ -114,4 +115,20 @@ $ kubectl nodestat ip-172-31-68-82.cn-north-1.compute.internal
 Progress: 100.00% (1/1)
 NAME                                          CPU(USAGE/TOTAL)   REQUESTS/LIMITS              MEMORY(USAGE/TOTAL)   REQUESTS/LIMITS
 ip-172-31-68-82.cn-north-1.compute.internal   522m/4000m/13.1%   1610m(40.2%)/4100m(102.5%)   5280Mi/7382Mi/71.5%   1148Mi(15.6%)/2843Mi(38.5%)
+```
+
+### kubectl-scaleig
+用于平滑地给 [kops](https://github.com/kubernetes/kops) 创建出来的 instance group 缩容。
+
+默认情况下, kops 通过修改与 instance group 对应的 AWS Auto Scaling Group 的 max size 来缩容, 这样会导致在 terminate EC2 实例的时候, 其实仍然有 Pod 在上面运行, 粗暴地关机会造成服务波动。
+
+比较理想的做法是在关机前先 drain 要删掉的节点, 把上面的 Pod 调度到其他节点, 然后把要删掉的节点从 Auto Scaling Group 中 detach, 最后在分别 terminate 要删掉的节点。
+
+由于手工 detach 跟 terminate 比较繁琐, 且容易出错, 所以写了这个 kubectl plugin 来自动化这一系列过程。
+
+用法:
+```sh
+# kubectl scaleig -c <kops cluster name> --size <desired size> <instance group name>
+# eg
+$ kubectl scaleig -c kops-test.k8s.local --size 1 nodes
 ```

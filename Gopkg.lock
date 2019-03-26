@@ -18,6 +18,14 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  digest = "1:49bb4045c0160828636e413d7b55fad7f5d49c5e2aec28a4e70c3214e3f40c9a"
+  name = "github.com/aws/aws-sdk-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f778816ebd8f4a83264c207c77e6bcd0a5a76603"
+  version = "v1.19.1"
+
+[[projects]]
   digest = "1:6b21090f60571b20b3ddc2c8e48547dffcf409498ed6002c2cada023725ed377"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -646,6 +654,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/aws/aws-sdk-go",
     "github.com/spf13/cobra",
     "gopkg.in/yaml.v2",
     "k8s.io/api/admission/v1beta1",
@@ -679,6 +688,7 @@
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
+    "k8s.io/apimachinery/pkg/fields",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
