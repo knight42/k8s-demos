@@ -3,6 +3,7 @@ package scaleig
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -62,7 +63,7 @@ func NewCmd() *cobra.Command {
 	o := NewScaleInstanceGroupOptions()
 
 	cmd := &cobra.Command{
-		Use:  "kubectl scaleig [NAME] [flags]",
+		Use:  "kubectl scaleig <InstanceGroup Name> [flags]",
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			utils.CheckError(o.Complete(cmd, args))
@@ -129,7 +130,7 @@ func (o *ScaleInstanceGroupOptions) Validate() error {
 
 func (o *ScaleInstanceGroupOptions) ensureSchedulability(nodeNames []string, schedulable bool) error {
 	nodesAPI := o.clientSet.CoreV1().Nodes()
-	patchBytes := []byte(fmt.Sprintf("{\"spec\":{\"unschedulable\":%v}}", !schedulable))
+	patchBytes := []byte(fmt.Sprintf(`{"spec":{"unschedulable":%v}}`, !schedulable))
 
 	for _, name := range nodeNames {
 		_, err := nodesAPI.Patch(name, types.StrategicMergePatchType, patchBytes)
@@ -208,11 +209,18 @@ func (o *ScaleInstanceGroupOptions) Run() error {
 	}
 
 	asg := descASGOutput.AutoScalingGroups[0]
-	if len(asg.Instances) == 0 {
-		return fmt.Errorf("not found: auto scaling group `%s` contains no instance", asgName)
+	var runningInstances []*autoscaling.Instance
+	for _, inst := range asg.Instances {
+		if aws.StringValue(inst.LifecycleState) == autoscaling.LifecycleStateInService {
+			runningInstances = append(runningInstances, inst)
+		}
 	}
 
-	instanceCount := len(asg.Instances)
+	instanceCount := len(runningInstances)
+	if instanceCount == 0 {
+		return fmt.Errorf("not found: auto scaling group `%s` contains no running instance", asgName)
+	}
+
 	if o.size == instanceCount {
 		fmt.Println("No changes")
 		return nil
@@ -224,7 +232,7 @@ func (o *ScaleInstanceGroupOptions) Run() error {
 
 	delta := instanceCount - o.size
 	instanceIDs := make([]*string, delta)
-	for i, inst := range asg.Instances[:delta] {
+	for i, inst := range runningInstances[:delta] {
 		instanceIDs[i] = inst.InstanceId
 	}
 
@@ -258,25 +266,29 @@ func (o *ScaleInstanceGroupOptions) Run() error {
 		if err != nil {
 			return err
 		}
+		fmt.Println("Waiting for 5m for pods to stabilize after draining.")
+		time.Sleep(time.Minute * 5)
 	}
 
-	desiredSize := aws.Int64(aws.Int64Value(asg.MinSize) - int64(delta))
-	updateASGInput := autoscaling.UpdateAutoScalingGroupInput{
-		MinSize:              desiredSize,
-		MaxSize:              desiredSize,
-		AutoScalingGroupName: asgNamePtr,
-	}
-	fmt.Printf("Updating auto scaling group `%s`\n", asgName)
-	_, err = autoscalingSvc.UpdateAutoScalingGroup(&updateASGInput)
-	if err != nil {
-		return fmt.Errorf("update auto scaling group: %s", err)
+	desiredSize := int64(o.size)
+	currentMinSize := aws.Int64Value(asg.MinSize)
+	if currentMinSize > desiredSize {
+		updateASGInput := autoscaling.UpdateAutoScalingGroupInput{
+			MinSize:              aws.Int64(desiredSize),
+			AutoScalingGroupName: asgNamePtr,
+		}
+		fmt.Printf("Updating auto scaling group `%s`\n", asgName)
+		_, err = autoscalingSvc.UpdateAutoScalingGroup(&updateASGInput)
+		if err != nil {
+			return fmt.Errorf("update auto scaling group %s: %s", asgName, err)
+		}
 	}
 
-	shouldDecrementDesiredCapacity := true
+	yes := true
 	detachInput := autoscaling.DetachInstancesInput{
 		InstanceIds:                    instanceIDs,
 		AutoScalingGroupName:           asgNamePtr,
-		ShouldDecrementDesiredCapacity: &shouldDecrementDesiredCapacity,
+		ShouldDecrementDesiredCapacity: &yes,
 	}
 	fmt.Printf("Detaching instances from auto scaling group `%s`\n", asgName)
 	_, err = autoscalingSvc.DetachInstances(&detachInput)
