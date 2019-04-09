@@ -132,7 +132,10 @@ func (o *PodStatusOptions) Validate() error {
 
 // See also https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L579
 func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
-	pod := obj.(*corev1.Pod)
+	pod, ok := obj.(*corev1.Pod)
+	if !ok {
+		return fmt.Errorf("object is not a Pod: %#v", obj)
+	}
 	var (
 		readyCount int
 		totalCount int   = len(pod.Spec.Containers)
@@ -392,18 +395,17 @@ func (o *PodStatusOptions) watchPods() error {
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer signal.Stop(sigChan)
 
-	loop := true
-	for loop {
+	for {
 		select {
 		case ev := <-evChan:
-			o.PrintObj(ev.Object, true)
+			err := o.PrintObj(ev.Object, true)
+			if err != nil {
+				return nil
+			}
 		case <-sigChan:
-			signal.Stop(sigChan)
-			close(sigChan)
-			loop = false
+			return nil
 		}
 	}
-
-	return nil
 }
