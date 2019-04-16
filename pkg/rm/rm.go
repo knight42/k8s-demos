@@ -87,12 +87,7 @@ func (o *RmOptions) Run() error {
 
 	identifier := strings.Join(allArgs, "_")
 	identifier = strings.ReplaceAll(identifier, " ", "_")
-	fpath := path.Join(o.backupDir, fmt.Sprintf("%s_rm_%s.yaml", time.Now().Format(time.RFC3339), identifier))
-	f, err := os.OpenFile(fpath, os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+	identifier = strings.ReplaceAll(identifier, "/", "_")
 
 	yamlPrinter := printers.YAMLPrinter{}
 
@@ -105,7 +100,6 @@ func (o *RmOptions) Run() error {
 		LabelSelector(o.selector).
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.namespace).DefaultNamespace().
-		SingleResourceType().
 		ResourceTypeOrNameArgs(false, o.args...).
 		Latest().
 		Flatten().
@@ -116,6 +110,13 @@ func (o *RmOptions) Run() error {
 	}
 
 	var deletedInfos []*resource.Info
+
+	fpath := path.Join(o.backupDir, fmt.Sprintf("%s_rm_%s.yaml", time.Now().Format(time.RFC3339), identifier))
+	f, err := os.OpenFile(fpath, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	err = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
