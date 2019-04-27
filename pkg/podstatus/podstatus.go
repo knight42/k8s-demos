@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/kubernetes/pkg/util/node"
 )
 
 const (
@@ -51,7 +50,6 @@ type PodStatusOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 
 	namespace     string
-	name          string
 	watch         bool
 	watchOnly     bool
 	labelSelector string
@@ -115,7 +113,7 @@ func (o *PodStatusOptions) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	o.writer = tabwriter.New(os.Stdout)
-	o.writer.SetHeader([]string{"name", "ready", "status", "restarts", "podip", "hostip", "node", "age"})
+	o.writer.SetHeader([]string{"name", "ready", "status", "last status", "restarts", "podip", "hostip", "node", "age"})
 
 	return nil
 }
@@ -197,7 +195,7 @@ func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
 			}
 		}
 
-		if pod.DeletionTimestamp != nil && pod.Status.Reason == node.NodeUnreachablePodReason {
+		if pod.DeletionTimestamp != nil && pod.Status.Reason == "NodeLost" {
 			reason = "Unknown"
 		} else if pod.DeletionTimestamp != nil {
 			reason = "Terminating"
@@ -206,6 +204,18 @@ func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
 		// change pod status back to "Running" if there is at least one container still reporting as "Running" status
 		if reason == "Completed" && hasRunning {
 			reason = "Running"
+		}
+	}
+
+	lastReason := "<none>"
+	for i := len(pod.Status.ContainerStatuses) - 1; i >= 0; i-- {
+		container := pod.Status.ContainerStatuses[i]
+		lastTermState := container.LastTerminationState
+		if lastTermState.Terminated != nil {
+			t := lastTermState.Terminated
+			lastReason = fmt.Sprintf("%s:%d", t.Reason, t.ExitCode)
+		} else if lastTermState.Waiting != nil {
+			lastReason = lastTermState.Waiting.Reason
 		}
 	}
 
@@ -227,28 +237,21 @@ func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
 		age = duration.ShortHumanDuration(time.Since(pod.Status.StartTime.Time))
 	}
 
+	args := []interface{}{
+		pod.Name,
+		fmt.Sprintf("%d/%d", readyCount, totalCount),
+		reason,
+		lastReason,
+		restarts,
+		podIP,
+		hostIP,
+		nodeName,
+		age,
+	}
 	if needFlush {
-		_ = o.writer.AppendAndFlush(
-			pod.Name,
-			fmt.Sprintf("%d/%d", readyCount, totalCount),
-			reason,
-			restarts,
-			podIP,
-			hostIP,
-			nodeName,
-			age,
-		)
+		_ = o.writer.AppendAndFlush(args...)
 	} else {
-		o.writer.Append(
-			pod.Name,
-			fmt.Sprintf("%d/%d", readyCount, totalCount),
-			reason,
-			restarts,
-			podIP,
-			hostIP,
-			nodeName,
-			age,
-		)
+		o.writer.Append(args...)
 	}
 	return nil
 }
@@ -371,8 +374,7 @@ func (o *PodStatusOptions) watchPods() error {
 		return err
 	}
 
-	rv := "0"
-	rv, err = meta.NewAccessor().ResourceVersion(obj)
+	rv, err := meta.NewAccessor().ResourceVersion(obj)
 	if err != nil {
 		return err
 	}
@@ -380,7 +382,7 @@ func (o *PodStatusOptions) watchPods() error {
 	if !o.watchOnly {
 		objsToPrint, _ := meta.ExtractList(obj)
 		for _, objToPrint := range objsToPrint {
-			o.PrintObj(objToPrint, false)
+			_ = o.PrintObj(objToPrint, false)
 		}
 		_ = o.writer.Render()
 	}
