@@ -596,6 +596,14 @@
   revision = "b7e8408f656ea5ae6b07f182070b2b4630f00f50"
 
 [[projects]]
+  digest = "1:c696379ad201c1e86591785579e16bf6cf886c362e9a7534e8eb0d1028b20582"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e531227889390a39d9533dde61f590fe9f4b0035"
+  version = "v0.3.0"
+
+[[projects]]
   branch = "master"
   digest = "1:ecc4b13156741bff53b3c116991760ac9ce9ff034c0a8f9e9683b8b5fddfca16"
   name = "k8s.io/kube-openapi"
@@ -605,14 +613,6 @@
   ]
   pruneopts = "UT"
   revision = "94e1e7b7574c44c4c0f2007de6fe617e259191f3"
-
-[[projects]]
-  digest = "1:e83ea23e1e220e42fc8edf3b8bc8eb5385e578d3a80dedc26a57ba871dd76502"
-  name = "k8s.io/kubernetes"
-  packages = ["pkg/util/node"]
-  pruneopts = "UT"
-  revision = "b7394102d6ef778017f2ca4046abbaa23b88c290"
-  version = "v1.14.1"
 
 [[projects]]
   branch = "master"
@@ -731,7 +731,6 @@
     "k8s.io/cli-runtime/pkg/resource",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/kubernetes/pkg/util/node",
     "k8s.io/metrics/pkg/apis/metrics",
     "k8s.io/metrics/pkg/apis/metrics/v1beta1",
     "k8s.io/metrics/pkg/client/clientset/versioned",
