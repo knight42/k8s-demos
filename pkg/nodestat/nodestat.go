@@ -236,9 +236,9 @@ func (o *NodeStatOptions) printResourceUsage(nodeMetrics []metricsapi.NodeMetric
 
 		o.writer.Append(
 			m.Name,
-			fmt.Sprintf("%vm/%vm/%.1f%%", cpuUsage.MilliValue(), cpuTotal.MilliValue(), fractionCpuUsage),
+			fmt.Sprintf("%vm(%.1f%%)/%vm", cpuUsage.MilliValue(), fractionCpuUsage, cpuTotal.MilliValue()),
 			fmt.Sprintf("%vm(%.1f%%)/%vm(%.1f%%)", cpuReqs.MilliValue(), fractionCpuReqs, cpuLims.MilliValue(), fractionCpuLimits),
-			fmt.Sprintf("%vMi/%vMi/%.1f%%", memoryInMB(memUsage.Value()), memoryInMB(memTotal.Value()), fractionMemUsage),
+			fmt.Sprintf("%vMi(%.1f%%)/%vMi", memoryInMB(memUsage.Value()), fractionMemUsage, memoryInMB(memTotal.Value())),
 			fmt.Sprintf("%vMi(%.1f%%)/%vMi(%.1f%%)", memoryInMB(memReqs.Value()), fractionMemReqs, memoryInMB(memLims.Value()), fractionMemLimits),
 		)
 	}
