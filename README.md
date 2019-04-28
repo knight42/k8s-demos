@@ -25,7 +25,7 @@ export PATH=$GOPATH/bin:$PATH
 ```
 $ kubectl rm deploy nginx
 $ ls ~/.k8s-wastebin/kops-test.k8s.local/default
-2019-03-11T15:01:34+08:00_rm_deploy_echo.yaml  2019-03-11T15:06:22+08:00_rm_cm_-lfoo.yaml
+2019-03-11T15:01:34+08:00_rm_deploy_echo.yaml  2019-04-16T20:21:59+08:00_rm_svc_perf_deploy_perf.yaml
 ```
 
 ### kubectl-podstatus
@@ -38,8 +38,8 @@ $ kubectl podstatus perf
 Deployment: default/perf
 Selector: -lapp=perf
 
-NAME                    READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
-perf-5fb9999756-d9fhc   1/1     Running   0          100.96.4.144   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   1h
+NAME                    READY   STATUS    LAST STATUS     RESTARTS   PODIP           HOSTIP         NODE                                          AGE
+perf-5fb9999756-d9fhc   1/1     Running   OOMKilled:137   2          100.96.25.224   172.31.77.41   ip-172-31-77-41.cn-north-1.compute.internal   5d
 ```
 
 ```sh
@@ -48,8 +48,8 @@ $ kubectl podstatus -n infra deploy/echoserver
 Deployment: infra/echoserver
 Selector: -lrun=echoserver
 
-NAME                          READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
-echoserver-7dd9469844-tbhgt   1/1     Running   0          100.96.4.139   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   7h
+NAME                          READY   STATUS    LAST STATUS   RESTARTS   PODIP           HOSTIP          NODE                                           AGE
+echoserver-7dd9469844-hlm5v   1/1     Running   <none>        0          100.96.10.195   172.31.70.116   ip-172-31-70-116.cn-north-1.compute.internal   7d
 ```
 
 ```sh
@@ -57,9 +57,8 @@ echoserver-7dd9469844-tbhgt   1/1     Running   0          100.96.4.139   172.31
 $ kubectl podstatus -lcronjob=sleep
 Selector: -lcronjob=sleep
 
-NAME                     READY   STATUS      RESTARTS   PODIP         HOSTIP          NODE                                           AGE
-sleep-1551877200-57895   0/1     Completed   0          100.96.3.57   172.31.71.175   ip-172-31-71-175.cn-north-1.compute.internal   55m
-sleep-1551879000-zwl6l   0/1     Completed   0          100.96.3.87   172.31.71.175   ip-172-31-71-175.cn-north-1.compute.internal   25m
+NAME                     READY   STATUS      LAST STATUS   RESTARTS   PODIP           HOSTIP          NODE                                           AGE
+sleep-1551877200-57895   0/1     Completed   <none>        0          100.96.18.190   172.31.64.115   ip-172-31-64-115.cn-north-1.compute.internal   1d
 ```
 
 ```sh
@@ -68,17 +67,14 @@ $ kubectl podstatus -w perf
 Deployment: default/perf
 Selector: -lapp=perf
 
-NAME                    READY   STATUS    RESTARTS   PODIP          HOSTIP          NODE                                           AGE
-perf-6566dbff9f-847g7   1/1     Running   0          100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-847g7   1/1   Terminating   0     100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-m9525   0/1   Pending   0     <none>   <none>   <none>   <none>
-perf-6566dbff9f-m9525   0/1   Pending   0     <none>   <none>   ip-172-31-67-191.cn-north-1.compute.internal   <none>
-perf-6566dbff9f-m9525   0/1   ContainerCreating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   0s
-perf-6566dbff9f-847g7   0/1   Terminating   0     100.96.4.150   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-847g7   0/1   Terminating   0     <none>   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   3h
-perf-6566dbff9f-m9525   1/1   Running   0     100.96.4.151   172.31.67.191   ip-172-31-67-191.cn-north-1.compute.internal   11s
+NAME                  READY   STATUS    LAST STATUS   RESTARTS   PODIP         HOSTIP         NODE                                          AGE
+perf-7cbf7bf8-bznqv   1/1     Running   <none>        0          100.96.9.78   172.31.74.30   ip-172-31-74-30.cn-north-1.compute.internal   22d
+perf-fc679db49-7jgqs   0/1   Pending   <none>   0     <none>   <none>   <none>   <none>
+perf-fc679db49-7jgqs   0/1   Pending   <none>   0     <none>   <none>   ip-172-31-74-18.cn-north-1.compute.internal   <none>
+perf-fc679db49-7jgqs   0/1   ContainerCreating   <none>   0     <none>   172.31.74.18   ip-172-31-74-18.cn-north-1.compute.internal   0s
+perf-fc679db49-7jgqs   1/1   Running   <none>   0     100.96.10.146   172.31.74.18   ip-172-31-74-18.cn-north-1.compute.internal   11s
+perf-7cbf7bf8-bznqv   1/1   Terminating   <none>   0     100.96.9.78   172.31.74.30   ip-172-31-74-30.cn-north-1.compute.internal   22d
+perf-7cbf7bf8-bznqv   0/1   Terminating   <none>   0     100.96.9.78   172.31.74.30   ip-172-31-74-30.cn-north-1.compute.internal   22d
 ```
 
 ### kubectl-nodestat
@@ -88,24 +84,24 @@ perf-6566dbff9f-m9525   1/1   Running   0     100.96.4.151   172.31.67.191   ip-
 
 例子:
 ```sh
-# 注意：当集群中 Node 或 Pod 数比较多的话，会比较慢，推荐使用 `-l <label>` 筛选 Node 或者指定 Node Name
+# 注意：当集群中 Node 或 Pod 数目比较多的话会比较慢。推荐使用 `-l <label>` 筛选 Node 或者指定 Node Name
 $ kubectl nodestat
 Progress: 100.00% (5/5)
-NAME                                           CPU(USAGE/TOTAL)   REQUESTS/LIMITS           MEMORY(USAGE/TOTAL)   REQUESTS/LIMITS
-ip-172-31-67-0.cn-north-1.compute.internal     106m/1000m/10.6%   900m(90.0%)/0m(0.0%)      1930Mi/3666Mi/52.6%   150Mi(4.1%)/100Mi(2.7%)
-ip-172-31-67-191.cn-north-1.compute.internal   49m/2000m/2.5%     360m(18.0%)/250m(12.5%)   2426Mi/3854Mi/63.0%   130Mi(3.4%)/230Mi(6.0%)
-ip-172-31-67-84.cn-north-1.compute.internal    97m/1000m/9.7%     850m(85.0%)/0m(0.0%)      1814Mi/3666Mi/49.5%   100Mi(2.7%)/100Mi(2.7%)
-ip-172-31-71-175.cn-north-1.compute.internal   64m/2000m/3.2%     840m(42.0%)/0m(0.0%)      2477Mi/3854Mi/64.3%   330Mi(8.6%)/440Mi(11.4%)
-ip-172-31-78-247.cn-north-1.compute.internal   76m/1000m/7.6%     850m(85.0%)/0m(0.0%)      1892Mi/3666Mi/51.6%   100Mi(2.7%)/100Mi(2.7%)
+NAME                                           CPU(USAGE/TOTAL)    REQUESTS/LIMITS           MEMORY(USAGE/TOTAL)    REQUESTS/LIMITS
+ip-172-31-67-0.cn-north-1.compute.internal     106m(10.6%)/1000m   900m(90.0%)/0m(0.0%)      1930Mi(52.6%)/3666Mi   150Mi(4.1%)/100Mi(2.7%)
+ip-172-31-67-191.cn-north-1.compute.internal   49m(2.5%)/2000m     360m(18.0%)/250m(12.5%)   2426Mi(63.0%)/3854Mi   130Mi(3.4%)/230Mi(6.0%)
+ip-172-31-67-84.cn-north-1.compute.internal    97m(9.7%)/1000m     850m(85.0%)/0m(0.0%)      1814Mi(49.5%)/3666Mi   100Mi(2.7%)/100Mi(2.7%)
+ip-172-31-71-175.cn-north-1.compute.internal   64m(3.2%)/2000m     840m(42.0%)/0m(0.0%)      2477Mi(64.3%)/3854Mi   330Mi(8.6%)/440Mi(11.4%)
+ip-172-31-78-247.cn-north-1.compute.internal   76m(7.6%)/1000m     850m(85.0%)/0m(0.0%)      1892Mi(51.6%)/3666Mi   100Mi(2.7%)/100Mi(2.7%)
 ```
 
 ```sh
 # 通过 label 筛选 Node
 $ kubectl nodestat -lrole=gw
 Progress: 100.00% (9/9)
-NAME                                           CPU(USAGE/TOTAL)    REQUESTS/LIMITS              MEMORY(USAGE/TOTAL)   REQUESTS/LIMITS
-ip-172-31-68-82.cn-north-1.compute.internal    524m/4000m/13.1%    1610m(40.2%)/4100m(102.5%)   5281Mi/7382Mi/71.5%   1148Mi(15.6%)/2843Mi(38.5%)
-ip-172-31-71-6.cn-north-1.compute.internal     776m/4000m/19.4%    2010m(50.2%)/5100m(127.5%)   5074Mi/7382Mi/68.7%   748Mi(10.1%)/2543Mi(34.4%)
+NAME                                           CPU(USAGE/TOTAL)     REQUESTS/LIMITS              MEMORY(USAGE/TOTAL)    REQUESTS/LIMITS
+ip-172-31-68-82.cn-north-1.compute.internal    524m(13.1%)/4000m    1610m(40.2%)/4100m(102.5%)   5281Mi(71.5%)/7382Mi   1148Mi(15.6%)/2843Mi(38.5%)
+ip-172-31-71-6.cn-north-1.compute.internal     776m(19.4%)/4000m    2010m(50.2%)/5100m(127.5%)   5074Mi(68.7%)/7382Mi   748Mi(10.1%)/2543Mi(34.4%)
 ...
 ```
 
@@ -113,8 +109,8 @@ ip-172-31-71-6.cn-north-1.compute.internal     776m/4000m/19.4%    2010m(50.2%)/
 # 指定 Node Name
 $ kubectl nodestat ip-172-31-68-82.cn-north-1.compute.internal
 Progress: 100.00% (1/1)
-NAME                                          CPU(USAGE/TOTAL)   REQUESTS/LIMITS              MEMORY(USAGE/TOTAL)   REQUESTS/LIMITS
-ip-172-31-68-82.cn-north-1.compute.internal   522m/4000m/13.1%   1610m(40.2%)/4100m(102.5%)   5280Mi/7382Mi/71.5%   1148Mi(15.6%)/2843Mi(38.5%)
+NAME                                          CPU(USAGE/TOTAL)    REQUESTS/LIMITS              MEMORY(USAGE/TOTAL)    REQUESTS/LIMITS
+ip-172-31-68-82.cn-north-1.compute.internal   522m(13.1%)/4000m   1610m(40.2%)/4100m(102.5%)   5280Mi(71.5%)/7382Mi   1148Mi(15.6%)/2843Mi(38.5%)
 ```
 
 ### kubectl-scaleig
