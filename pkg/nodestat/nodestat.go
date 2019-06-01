@@ -5,9 +5,9 @@ import (
 	"os"
 	"sort"
 
-	"github.com/knight42/k8s-tools/pkg/scheme"
 	"github.com/knight42/k8s-tools/pkg/tabwriter"
 	"github.com/knight42/k8s-tools/pkg/utils"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"

@@ -10,12 +10,12 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/knight42/k8s-tools/pkg/scheme"
 	"github.com/knight42/k8s-tools/pkg/utils"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 type RmOptions struct {

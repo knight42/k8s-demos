@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/knight42/k8s-tools/pkg/scheme"
 	"github.com/knight42/k8s-tools/pkg/tabwriter"
 	"github.com/knight42/k8s-tools/pkg/utils"
 
@@ -25,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 const (
@@ -68,7 +68,6 @@ func NewPodStatusOptions() *PodStatusOptions {
 
 func NewCmd() *cobra.Command {
 	o := NewPodStatusOptions()
-
 	cmd := &cobra.Command{
 		Use: "kubectl podstatus [NAME | -l label] [flags]",
 		Run: func(cmd *cobra.Command, args []string) {
