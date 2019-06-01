@@ -14,12 +14,12 @@ import (
 	"github.com/knight42/k8s-tools/pkg/utils"
 
 	"github.com/spf13/cobra"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -35,13 +35,13 @@ const (
 )
 
 const (
+	KindPod         = "Pod"
 	KindDeployment  = "Deployment"
 	KindStatefulSet = "StatefulSet"
 	KindDaemonSet   = "DaemonSet"
 )
 
 var (
-	errNoPods      = fmt.Errorf("no pods")
 	errNotFound    = fmt.Errorf("not found")
 	errUnknwonKind = fmt.Errorf("unknown kind")
 )
@@ -128,7 +128,7 @@ func (o *PodStatusOptions) Validate() error {
 }
 
 // See also https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L579
-func (o *PodStatusOptions) PrintObj(obj runtime.Object, needFlush bool) error {
+func (o *PodStatusOptions) PrintPod(obj runtime.Object, needFlush bool) error {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		return fmt.Errorf("object is not a Pod: %#v", obj)
@@ -299,9 +299,9 @@ func (o *PodStatusOptions) Run() error {
 		switch mapping.GroupVersionKind.Kind {
 		case KindDeployment:
 			var antns map[string]string
-			deploy := obj.(*extensionsv1beta1.Deployment)
-			selector = labels.FormatLabels(deploy.Spec.Selector.MatchLabels)
-			antns = deploy.Annotations
+			metaobj := obj.(metav1.Object)
+			selector = getSelectorFromObject(obj)
+			antns = metaobj.GetAnnotations()
 			fmt.Printf("Deployment: %s/%s\n", info.Namespace, info.Name)
 			if val, ok := antns[OwnersAnnotationKey]; ok {
 				fmt.Printf("Owners: %s\n", val)
@@ -316,13 +316,13 @@ func (o *PodStatusOptions) Run() error {
 				fmt.Printf("Last Timestamp: %s\n", val)
 			}
 		case KindStatefulSet:
-			v := obj.(*appsv1.StatefulSet)
-			selector = labels.FormatLabels(v.Spec.Selector.MatchLabels)
+			selector = getSelectorFromObject(obj)
 			fmt.Printf("StatefulSet: %s/%s\n", info.Namespace, info.Name)
 		case KindDaemonSet:
-			v := obj.(*extensionsv1beta1.DaemonSet)
-			selector = labels.FormatLabels(v.Spec.Selector.MatchLabels)
+			selector = getSelectorFromObject(obj)
 			fmt.Printf("DaemonSet: %s/%s\n", info.Namespace, info.Name)
+		case KindPod:
+			return o.handleSinglePod(info)
 		default:
 			return errUnknwonKind
 		}
@@ -350,11 +350,64 @@ func (o *PodStatusOptions) Run() error {
 			return err
 		}
 
-		return o.PrintObj(info.Object, false)
+		return o.PrintPod(info.Object, false)
 	})
 	_ = o.writer.Render()
 
 	return err
+}
+
+func (o *PodStatusOptions) handleSinglePod(info *resource.Info) error {
+	obj := info.Object
+	metaobj := obj.(metav1.Object)
+	podEvtSelector := fields.AndSelectors(
+		fields.OneTermEqualSelector("involvedObject.name", info.Name),
+		fields.OneTermEqualSelector("involvedObject.namespace", info.Namespace),
+		fields.OneTermEqualSelector("involvedObject.uid", string(metaobj.GetUID())),
+	)
+	r := o.newBuilder().
+		FieldSelectorParam(podEvtSelector.String()).
+		SingleResourceType().
+		ResourceTypes("events").
+		Flatten().
+		Do()
+	if err := r.Err(); err != nil {
+		return err
+	}
+	evtPrinter := tabwriter.New(os.Stdout)
+	evtPrinter.SetHeader([]string{"Type", "Reason", "Age", "From", "Message"})
+	err := r.Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
+		evt, ok := info.Object.(*corev1.Event)
+		if !ok {
+			return fmt.Errorf("not event: %s", info.Object)
+		}
+		age := fmt.Sprintf(
+			"%s (x%d over %s)",
+			duration.ShortHumanDuration(time.Since(evt.LastTimestamp.Time)),
+			evt.Count,
+			duration.ShortHumanDuration(evt.LastTimestamp.Sub(evt.FirstTimestamp.Time)),
+		)
+		from := fmt.Sprintf("%s, %s", evt.Source.Component, evt.Source.Host)
+		evtPrinter.Append(evt.Type, evt.Reason, age, from, evt.Message)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Events:\n")
+	_ = evtPrinter.Render()
+	fmt.Println()
+	fmt.Printf("Pod: %s/%s\n", info.Namespace, info.Name)
+
+	if o.watch || o.watchOnly {
+		return fmt.Errorf("watching single pod is not supported now")
+	}
+	_ = o.PrintPod(info.Object, false)
+	_ = o.writer.Render()
+	return nil
 }
 
 func (o *PodStatusOptions) watchPods() error {
@@ -381,7 +434,7 @@ func (o *PodStatusOptions) watchPods() error {
 	if !o.watchOnly {
 		objsToPrint, _ := meta.ExtractList(obj)
 		for _, objToPrint := range objsToPrint {
-			_ = o.PrintObj(objToPrint, false)
+			_ = o.PrintPod(objToPrint, false)
 		}
 		_ = o.writer.Render()
 	}
@@ -401,7 +454,7 @@ func (o *PodStatusOptions) watchPods() error {
 	for {
 		select {
 		case ev := <-evChan:
-			err := o.PrintObj(ev.Object, true)
+			err := o.PrintPod(ev.Object, true)
 			if err != nil {
 				return nil
 			}
