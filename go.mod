@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.28.3
+	github.com/morikuni/aec v1.0.0
 	github.com/spf13/cobra v0.0.5
 	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.17.1
